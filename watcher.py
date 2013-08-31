@@ -1,6 +1,6 @@
 import sys
 import ConfigParser
-import os.path
+import os
 import re
 import shutil
 import errno
@@ -13,6 +13,7 @@ config.read('/share/HDA_DATA/CastgetStuff/watcher/watcher.cfg')
 filename = None
 individualMode = False
 testMode = False
+deleteMode = False
 destinationDirectory = config.get("Watcher", "DestinationDirectory")
 filenameRegularExpression = config.get("Watcher", "FilenameRegularExpression")
 
@@ -24,6 +25,7 @@ def PrintHelp( p_ProgramFilename = "watcher.py" ):
     print "  -h  --help        Shows this help screen"
     print "  -i  --individual  Allows you to mark only an individual episode as watched"
     print "  -t  --test        Allows you to just test what episodes will be moved"
+    print "  -d  --delete      Allows you to delete the episodes instead of moving them"
     print ""
     print "Filename is the file to mark as watched. By default this marks all episodes before that one as watched as well"
 
@@ -38,6 +40,8 @@ def HandleArgs( p_Arguments ):
             individualMode = True
         elif ( argument == "-t" or argument == "--test" ) :
             testMode = True
+        elif ( argument == "-d" or argument == "--delete" ) :
+            deleteMode = True
         else :
             if ( filename is None ) :
                 filename = os.path.abspath( argument )
@@ -82,11 +86,16 @@ def MoveEpisode( p_Filename ):
         print "Unable to move episode: " + p_Filename +". Regular expression failed."
         exit()
     SourceFile = p_Filename
-    DestinationFile = os.path.join(destinationDirectory,filenameExpression.group(1))
-    print "Moving Episode: " + SourceFile + " to " + DestinationFile
-    if not testMode :
-        MakeDirectory(os.path.dirname(DestinationFile))
-        shutil.move(SourceFile, DestinationFile)
+    if deleteMode :
+        print "Deleting Episode: " + SourceFile
+        if not testMode :
+            os.remove(SourceFile)
+    else :
+        DestinationFile = os.path.join(destinationDirectory,filenameExpression.group(1))
+        print "Moving Episode: " + SourceFile + " to " + DestinationFile
+        if not testMode :
+            MakeDirectory(os.path.dirname(DestinationFile))
+            shutil.move(SourceFile, DestinationFile)
     
 # Moves the entire season to the destination directory
 def MoveSeason( p_Filename ):
